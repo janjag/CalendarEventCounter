@@ -72,6 +72,33 @@ function viewAllTasks() {
 function getSelectedEvents(s, e) {
 }
 
+inquirer.prompt([
+  {
+    type: 'list',
+    name: 'task',
+    message: 'What do you want to do?',
+    choices: [
+      'Show all calendars details',
+      'Count all events in all calendars',
+      'Count and view all events in all calendars',
+      'Count all events in all calendars between selected dates'
+    ]
+  }
+]).then(answers => {
+  if(answers.task === 'Show all calendars details') {
+    getCalendars();
+  }
+  if(answers.task === 'Count all events in all calendars') {
+    getAllEvents();
+  }
+  if(answers.task === 'Count and view all events in all calendars') {
+    viewAllTasks();
+  }
+  if(answers.task === 'Count all events in all calendars between selected dates') {
+    console.log(chalk.red.underline('TO DO'));
+  }
+});
+
 /**
  * Load client secrets from a local file.
  */
@@ -152,8 +179,6 @@ function listEvents(auth, cid, csummary, cbgc) {
 	const now = new Date();
 	const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevMonthLastDate = new Date(now.getFullYear(), now.getMonth() -1, 31);
-  
-  console.log(time);
 
   calendar.events.list({
     calendarId: cid,
@@ -195,13 +220,13 @@ function listCalendars(auth) {
 			calendars.forEach(element => {
 				if (!showCalendars) {
           listEvents(auth, element.id, element.summary, element.backgroundColor);
-          return;
+        } else {console.log(chalk.hex(element.backgroundColor)(`
+            Calendar ID: ${element.id}\n 
+            Calendar summary: ${element.summary}\n 
+            Calendar bg-color: ${element.backgroundColor}
+          `));
         }
-        console.log(chalk.hex(element.backgroundColor)(`
-          Calendar ID: ${element.id}\n 
-          Calendar summary: ${element.summary}\n 
-          Calendar bg-color: ${element.backgroundColor}
-        `));
+        
 			});
 		} else {
       console.log('No calendars found.');

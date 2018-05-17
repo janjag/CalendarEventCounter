@@ -19,12 +19,14 @@ After authorization simply run ```node index.js```
 
 If you want to se full list of tasks change ```showAll``` to ```true```
 
+To use it globaly run ```npm link``` while in project directory.
+
 
 ---
 
 ### To Do
 
-- Making script more interactive
+- ~~Making script more interactive~~
 - Sort events by name and count total time/event for them.
 - Add option to select specyfic date range.
 - Add configuration for manual selection of calendars to cycle through. 
