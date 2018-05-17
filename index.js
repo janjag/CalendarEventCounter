@@ -1,21 +1,87 @@
+#!/usr/bin/env node
+
 const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
 const {google} = require('googleapis');
 const chalk = require('chalk');
+const program = require('commander');
+const inquirer = require('inquirer');
+const moment = require('moment');
 
 // show tasks
-const showAll = false;
+let showAll = false;
+let showCalendars = false;
+let accessLevel = 'writer';
 
-// If modifying these scopes, delete credentials.json.
+// Seting up context
+const context = __dirname + "/";
+
+// If modifying these scopes, delete CalendarEventCountercredentials.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
-const TOKEN_PATH = 'credentials.json';
+const TOKEN_PATH = context + 'CalendarEventCountercredentials.json';
 
-// Load client secrets from a local file.
-try {
-  const content = fs.readFileSync('client_secret.json');
-  authorize(JSON.parse(content), listCalendars);
-} catch (err) {
-  return console.log('Error loading client secret file:', err);
+/**
+ * Program config
+ */
+
+program
+  .version('1.1.0')
+  .description(chalk.cyan('Simple Google Calendar event time counter'));
+
+program
+  .command('countCalendars')
+  .alias('c')
+  .description('Show all calendars details')
+  .action(getCalendars);
+
+program
+  .command('countAllEvets')
+  .alias('a')
+  .description('Count all events in all calendars')
+  .action(getAllEvents);
+
+program
+  .command('viewAllTasks')
+  .alias('t')
+  .description('Count and view all events in all calendars')
+  .action(viewAllTasks);
+
+program
+  .command('countSelectedEvets')
+  .alias('s')
+  .description('Count all events in all calendars between selected dates')
+  .action(getSelectedEvents('2018-01-01', '2018-01-31'));
+
+program.parse(process.argv);
+
+function getCalendars() {
+  showCalendars = true;
+  loadClientSecret(listCalendars);
+}
+
+function getAllEvents() {
+  loadClientSecret(listCalendars);
+}
+
+function viewAllTasks() {
+  showAll = true;
+  loadClientSecret(listCalendars);
+}
+
+function getSelectedEvents(s, e) {
+}
+
+/**
+ * Load client secrets from a local file.
+ */
+function loadClientSecret(callback) {
+  try {
+    const content = fs.readFileSync(context + '/client_secret.json');
+    authorize(JSON.parse(content), callback);
+  } catch (err) {
+    return console.log('Error loading client secret file:', err);
+  }
 }
 
 /**
@@ -52,12 +118,12 @@ function getAccessToken(oAuth2Client, callback) {
     access_type: 'offline',
     scope: SCOPES,
   });
-  console.log('Authorize this app by visiting this url:', authUrl);
+  console.log(chalk.green.italic('Authorize this app by visiting this url:'), authUrl);
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
-  rl.question('Enter the code from that page here: ', (code) => {
+  rl.question(chalk.green.italic('Enter the code from that page here: '), (code) => {
     rl.close();
     oAuth2Client.getToken(code, (err, token) => {
       if (err) return callback(err);
@@ -65,7 +131,7 @@ function getAccessToken(oAuth2Client, callback) {
       // Store the token to disk for later program executions
       try {
         fs.writeFileSync(TOKEN_PATH, JSON.stringify(token));
-        console.log('Token stored to', TOKEN_PATH);
+        console.log(chalk.green.italic('Token stored to', TOKEN_PATH));
       } catch (err) {
         console.error(err);
       }
@@ -75,14 +141,19 @@ function getAccessToken(oAuth2Client, callback) {
 }
 
 /**
- * Lists the next 10 events on the user's primary calendar.
+ * Lists the events on the user's calendars.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param cid An Google Calendar ID
+ * @param csummary An Google Calendar summary
+ * @param cbgc An Google Calendar background color
  */
 function listEvents(auth, cid, csummary, cbgc) {
 	const calendar = google.calendar({version: 'v3', auth});
 	const now = new Date();
 	const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-	const prevMonthLastDate = new Date(now.getFullYear(), now.getMonth(), 0);
+  const prevMonthLastDate = new Date(now.getFullYear(), now.getMonth() -1, 31);
+  
+  console.log(time);
 
   calendar.events.list({
     calendarId: cid,
@@ -106,23 +177,31 @@ function listEvents(auth, cid, csummary, cbgc) {
 					console.log(chalk.hex(cbgc)(`${start} - ${event.summary} - length: ${eventLength}h`));
 				}
       });
-			console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)} \n`));
+      console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}h \n`));
     } else {
       console.log(chalk.red(csummary + ': No upcoming events found.'));
     }
-	});
+  });
 }
 
 function listCalendars(auth) {
 	const calendar = google.calendar({version: 'v3', auth});
 	calendar.calendarList.list({
-		minAccessRole: 'writer'
+		minAccessRole: accessLevel
 	}, (err, {data}) => {
 		if (err) return console.log('The API returned an error: ' + err);
 		const calendars = data.items;
 		if (calendars.length) {
 			calendars.forEach(element => {
-				listEvents(auth, element.id, element.summary, element.backgroundColor);
+				if (!showCalendars) {
+          listEvents(auth, element.id, element.summary, element.backgroundColor);
+          return;
+        }
+        console.log(chalk.hex(element.backgroundColor)(`
+          Calendar ID: ${element.id}\n 
+          Calendar summary: ${element.summary}\n 
+          Calendar bg-color: ${element.backgroundColor}
+        `));
 			});
 		} else {
       console.log('No calendars found.');

@@ -1,6 +1,6 @@
 {
   "name": "calendareventcounter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Google Calendar API playground",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,11 @@
   "license": "ISC",
   "dependencies": {
     "chalk": "^2.4.1",
-    "googleapis": "^27.0.0"
-  }
+    "commander": "^2.15.1",
+    "googleapis": "^27.0.0",
+    "inquirer": "^5.2.0",
+    "moment": "^2.22.1"
+  },
+  "preferGlobal": true,
+  "bin": "./index.js"
 }
