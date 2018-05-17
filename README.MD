@@ -1,5 +1,6 @@
 # About
 This simple app was build for practice with Google Calendar API and to help counting total time spent on projects in previus month.
+For now it will cycle through all calendars that you have at least ```writer``` permission.
 
 ---
 
@@ -23,4 +24,7 @@ If you want to se full list of tasks change ```showAll``` to ```true```
 
 ### To Do
 
-- Sort events by name and count total time/event for them
+- Making script more interactive
+- Sort events by name and count total time/event for them.
+- Add option to select specyfic date range.
+- Add configuration for manual selection of calendars to cycle through. 
