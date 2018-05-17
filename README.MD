@@ -17,7 +17,7 @@ For now it will cycle through all calendars that you have at least ```writer``` 
 Token is generated for 24h.
 
 ## Usage
-After authorization simply run ```node index.js```
+After authorization and instaling dependecies (```npm install```) simply run ```node index.js```
 
 If you want to se full list of tasks change ```showAll``` to ```true```
 
