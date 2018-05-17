@@ -13,6 +13,7 @@ const moment = require('moment');
 let showAll = false;
 let showCalendars = false;
 let accessLevel = 'writer';
+let selectedDates = {};
 
 // Seting up context
 const context = __dirname + "/";
@@ -47,12 +48,6 @@ program
   .description('Count and view all events in all calendars')
   .action(viewAllTasks);
 
-program
-  .command('countSelectedEvets')
-  .alias('s')
-  .description('Count all events in all calendars between selected dates')
-  .action(getSelectedEvents('2018-01-01', '2018-01-31'));
-
 program.parse(process.argv);
 
 function getCalendars() {
@@ -69,8 +64,39 @@ function viewAllTasks() {
   loadClientSecret(listCalendars);
 }
 
-function getSelectedEvents(s, e) {
-}
+
+const questions = [
+  {
+    type: 'input',
+    name: 'start_date',
+    message: "Query start date",
+    validate: function(value) {
+      var pass = value.match(
+        /^\d{4}\-\d{1,2}\-\d{1,2}$/
+      );
+      if (pass) {
+        return true;
+      }
+
+      return 'Required date format: YYYY-MM-DD';
+    }
+  },
+  {
+    type: 'input',
+    name: 'end_date',
+    message: "Query end date",
+    validate: function(value) {
+      var pass = value.match(
+        /^\d{4}\-\d{1,2}\-\d{1,2}$/
+      );
+      if (pass) {
+        return true;
+      }
+
+      return 'Required date format: YYYY-MM-DD';
+    }
+  }
+];
 
 inquirer.prompt([
   {
@@ -95,7 +121,15 @@ inquirer.prompt([
     viewAllTasks();
   }
   if(answers.task === 'Count all events in all calendars between selected dates') {
-    console.log(chalk.red.underline('TO DO'));
+    console.log(chalk.yellow.bold('Required date format: YYYY-MM-DD'));
+    inquirer.prompt(questions).then(answers => {
+      selectedDates = {
+        start_date: moment(answers.start_date).format(),
+        end_date: moment(answers.end_date).format()
+      }
+
+      getAllEvents();
+    });
   }
 });
 
@@ -182,8 +216,8 @@ function listEvents(auth, cid, csummary, cbgc) {
 
   calendar.events.list({
     calendarId: cid,
-		timeMin: firstDayPrevMonth.toISOString(),
-		timeMax: prevMonthLastDate.toISOString(),
+		timeMin: selectedDates.start_date || firstDayPrevMonth.toISOString(),
+		timeMax: selectedDates.end_date || prevMonthLastDate.toISOString(),
 		maxResults: 2500,
     singleEvents: true,
     orderBy: 'startTime',

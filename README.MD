@@ -14,6 +14,8 @@ For now it will cycle through all calendars that you have at least ```writer``` 
 7. Click the file_download (Download JSON) button to the right of the client ID.
 8. Move this file to your working directory and rename it client_secret.json.
 
+Token is generated for 24h.
+
 ## Usage
 After authorization simply run ```node index.js```
 
@@ -26,7 +28,7 @@ To use it globaly run ```npm link``` while in project directory.
 
 ### To Do
 
-- ~~Making script more interactive~~
+- ~~Making script more interactive.~~
 - Sort events by name and count total time/event for them.
-- Add option to select specyfic date range.
+- ~~Add option to select specyfic date range.~~
 - Add configuration for manual selection of calendars to cycle through. 
