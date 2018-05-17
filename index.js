@@ -230,13 +230,13 @@ function listEvents(auth, cid, csummary, cbgc) {
       events.map((event, i) => {
 				// console.log(event);
 				const start = event.start.dateTime || event.start.date;
-				const eventLength = Math.abs(new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 36e5 || 0;
+				const eventLength = Math.abs(new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 60000 || 0;
 				total += eventLength;
         if (showAll) {
-					console.log(chalk.hex(cbgc)(`${start} - ${event.summary} - length: ${eventLength}h`));
+					console.log(chalk.hex(cbgc)(`${start} - ${event.summary} - length: ${eventLength}min`));
 				}
       });
-      console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}h \n`));
+      console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}min  / ${total /60}h \n`));
     } else {
       console.log(chalk.red(csummary + ': No upcoming events found.'));
     }
