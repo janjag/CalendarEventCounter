@@ -9,14 +9,17 @@ const program = require('commander');
 const inquirer = require('inquirer');
 const moment = require('moment');
 
+// Seting up context
+const context = __dirname + "/";
+
 // show tasks
+let useConfig = false;
 let showAll = false;
 let showCalendars = false;
 let accessLevel = 'writer';
 let selectedDates = {};
-
-// Seting up context
-const context = __dirname + "/";
+let saveCalendars = false;
+const CALENDARS = context + 'calendars.json';
 
 // If modifying these scopes, delete CalendarEventCountercredentials.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
@@ -112,10 +115,43 @@ inquirer.prompt([
   }
 ]).then(answers => {
   if(answers.task === 'Show all calendars details') {
-    getCalendars();
+    inquirer.prompt([
+      {
+        type: 'checkbox',
+        message: 'Do you want to save query results?',
+        name: 'saveCalendars',
+        choices: [
+          {
+            name: 'Yes'
+          }
+        ]
+      }
+    ]).then(answers => {
+      if(answers.saveCalendars[0] === 'Yes') {
+        saveCalendars = true;
+      }
+      getCalendars();
+    });
   }
   if(answers.task === 'Count all events in all calendars') {
-    getAllEvents();
+    inquirer.prompt([
+      {
+        type: 'checkbox',
+        message: 'Use config file',
+        name: 'useConfig',
+        choices: [
+          {
+            name: 'Yes'
+          }
+        ]
+      }
+    ]).then(answers => {
+      if(answers.useConfig[0] === 'Yes') {
+        useConfig = true;
+      }
+      
+      getAllEvents();
+    });
   }
   if(answers.task === 'Count and view all events in all calendars') {
     viewAllTasks();
@@ -132,6 +168,18 @@ inquirer.prompt([
     });
   }
 });
+
+/**
+ * Load client secrets from a local file.
+ */
+function loadClientConfig(callback) {
+  try {
+    const content = fs.readFileSync(context + '/client_secret.json');
+    authorize(JSON.parse(content), callback);
+  } catch (err) {
+    return console.log('Error loading client secret file:', err);
+  }
+}
 
 /**
  * Load client secrets from a local file.
@@ -207,8 +255,10 @@ function getAccessToken(oAuth2Client, callback) {
  * @param cid An Google Calendar ID
  * @param csummary An Google Calendar summary
  * @param cbgc An Google Calendar background color
+ * @param hRate Hourly rate form config file
+ * @param tax Tax from config file
  */
-function listEvents(auth, cid, csummary, cbgc) {
+function listEvents(auth, cid, csummary, cbgc, hRate, tax) {
 	const calendar = google.calendar({version: 'v3', auth});
 	const now = new Date();
 	const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -226,9 +276,8 @@ function listEvents(auth, cid, csummary, cbgc) {
 		const events = data.items;
 		let total = 0;
     if (events.length) {
-      console.log(chalk.hex(cbgc).italic(csummary + ': Upcoming event: ' + events.length+ '\n'));
+      console.log(chalk.hex(cbgc).italic(csummary + '- event: ' + events.length));
       events.map((event, i) => {
-				// console.log(event);
 				const start = event.start.dateTime || event.start.date;
 				const eventLength = Math.abs(new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 60000 || 0;
 				total += eventLength;
@@ -236,7 +285,13 @@ function listEvents(auth, cid, csummary, cbgc) {
 					console.log(chalk.hex(cbgc)(`${start} - ${event.summary} - length: ${eventLength}min`));
 				}
       });
-      console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}min  / ${total /60}h \n`));
+      if (hRate && tax) {
+        let cost = (total / 60) * hRate
+        console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}min  / ${total / 60}h `));
+        console.log(chalk.hex(cbgc)(`${cost} PLN brutto / Tax: ${cost * tax} PLN / ${cost - (cost * tax)} PLN netto \n`));
+      } else {
+        console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}min  / ${total / 60}h \n`));
+      }
     } else {
       console.log(chalk.red(csummary + ': No upcoming events found.'));
     }
@@ -244,19 +299,41 @@ function listEvents(auth, cid, csummary, cbgc) {
 }
 
 function listCalendars(auth) {
-	const calendar = google.calendar({version: 'v3', auth});
+  const calendar = google.calendar({version: 'v3', auth});
+  
+  if(useConfig) {
+    console.log('Using config file...');
+
+    try {
+      const calendarsConfig = fs.readFileSync(context + '/config.json');
+      const calendars = JSON.parse(calendarsConfig);
+
+      calendars.forEach(element => {
+        listEvents(auth, element.id, element.summary, element.backgroundColor, element.hourlyRate, element.tax);
+      });
+    } catch (err) {
+      return console.log('Error loading config file:', err);
+    }
+
+    return;
+  }
+
 	calendar.calendarList.list({
 		minAccessRole: accessLevel
 	}, (err, {data}) => {
 		if (err) return console.log('The API returned an error: ' + err);
 		const calendars = data.items;
 		if (calendars.length) {
+      if(showCalendars) {
+        fs.writeFileSync(CALENDARS, JSON.stringify(calendars));
+        console.log(chalk.green.italic('File stored to', CALENDARS));
+      }
 			calendars.forEach(element => {
 				if (!showCalendars) {
           listEvents(auth, element.id, element.summary, element.backgroundColor);
         } else {console.log(chalk.hex(element.backgroundColor)(`
-            Calendar ID: ${element.id}\n 
-            Calendar summary: ${element.summary}\n 
+            Calendar ID: ${element.id}
+            Calendar summary: ${element.summary}
             Calendar bg-color: ${element.backgroundColor}
           `));
         }

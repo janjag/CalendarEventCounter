@@ -23,6 +23,11 @@ If you want to se full list of tasks change ```showAll``` to ```true```
 
 To use it globaly run ```npm link``` while in project directory.
 
+## Additional config
+
+You can create custom configuration for calendars (use only selected insted of all) with additional params.
+For list of all calendars you can either print they id, summary and background color to console or save all they data in to ```calendars.json``` file and then copy it into ```config.json``` created based on ```config-template.json```.
+
 
 ---
 
@@ -31,4 +36,4 @@ To use it globaly run ```npm link``` while in project directory.
 - ~~Making script more interactive.~~
 - Sort events by name and count total time/event for them.
 - ~~Add option to select specyfic date range.~~
-- Add configuration for manual selection of calendars to cycle through. 
+- ~~Add configuration for manual selection of calendars to cycle through~~. 

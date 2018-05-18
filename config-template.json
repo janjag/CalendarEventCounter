@@ -1,0 +1,9 @@
+[
+    {
+        "id":"calendarID",
+        "summary":"calendar name",
+        "backgroundColor":"calendar background color",
+        "hourlyRate": 0,
+        "tax": 0 
+    }
+]
