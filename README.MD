@@ -2,6 +2,10 @@
 This simple app was build for practice with Google Calendar API and to help counting total time spent on projects in previus month.
 For now it will cycle through all calendars that you have at least ```writer``` permission.
 
+Assumptions: \
+- Days off are marked as full day events
+- Events that overlaps with other events should have it color changed - and won't be counted. Partial overlap is curently not supported.
+
 ---
 
 ## Seting up Google Calendar API
@@ -37,3 +41,4 @@ For list of all calendars you can either print they id, summary and background c
 - Sort events by name and count total time/event for them.
 - ~~Add option to select specyfic date range.~~
 - ~~Add configuration for manual selection of calendars to cycle through~~. 
+- Better detection of overlaping events.

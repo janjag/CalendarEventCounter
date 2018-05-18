@@ -278,6 +278,11 @@ function listEvents(auth, cid, csummary, cbgc, hRate, tax) {
     if (events.length) {
       console.log(chalk.hex(cbgc).italic(csummary + '- event: ' + events.length));
       events.map((event, i) => {
+        console.log(event);
+        // if event has specified color - it means that it overlaps with other event(s) and should be skipped
+        if(event.colorId) {
+          return;
+        }
 				const start = event.start.dateTime || event.start.date;
 				const eventLength = Math.abs(new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 60000 || 0;
 				total += eventLength;
