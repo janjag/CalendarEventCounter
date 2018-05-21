@@ -15,6 +15,7 @@ const context = __dirname + "/";
 // show tasks
 let useConfig = false;
 let showAll = false;
+let showAllCompact = false;
 let showCalendars = false;
 let accessLevel = 'writer';
 let selectedDates = {};
@@ -54,7 +55,6 @@ program
 program.parse(process.argv);
 
 function getCalendars() {
-  showCalendars = true;
   loadClientSecret(listCalendars);
 }
 
@@ -65,6 +65,41 @@ function getAllEvents() {
 function viewAllTasks() {
   showAll = true;
   loadClientSecret(listCalendars);
+}
+
+function options() {
+  inquirer.prompt([
+    {
+      type: 'checkbox',
+      message: 'Group tasks?',
+      name: 'groupTasks',
+      choices: [
+        {
+          name: 'Yes'
+        }
+      ]
+    },{
+      type: 'checkbox',
+      message: 'Use config file?',
+      name: 'useConfig',
+      choices: [
+        {
+          name: 'Yes'
+        }
+      ]
+    }
+  ]).then(answers => {
+    showAll = true;
+    if(answers.groupTasks[0] === 'Yes') {
+      showAllCompact = true;
+    }
+
+    if(answers.useConfig[0] === 'Yes') {
+      useConfig = true;
+    }
+    
+    getAllEvents();
+  });
 }
 
 
@@ -137,7 +172,7 @@ inquirer.prompt([
     inquirer.prompt([
       {
         type: 'checkbox',
-        message: 'Use config file',
+        message: 'Use config file?',
         name: 'useConfig',
         choices: [
           {
@@ -154,7 +189,7 @@ inquirer.prompt([
     });
   }
   if(answers.task === 'Count and view all events in all calendars') {
-    viewAllTasks();
+    options();
   }
   if(answers.task === 'Count all events in all calendars between selected dates') {
     console.log(chalk.yellow.bold('Required date format: YYYY-MM-DD'));
@@ -164,7 +199,7 @@ inquirer.prompt([
         end_date: moment(answers.end_date).format()
       }
 
-      getAllEvents();
+      options();
     });
   }
 });
@@ -274,22 +309,57 @@ function listEvents(auth, cid, csummary, cbgc, hRate, tax) {
   }, (err, {data}) => {
     if (err) return console.log(chalk.red(csummary + ': The API returned an error: ' + err));
 		const events = data.items;
-		let total = 0;
+    let total = 0;
+    let tasks = [];
+    let sortedTasks = [];
     if (events.length) {
-      console.log(chalk.hex(cbgc).italic(csummary + '- event: ' + events.length));
+      console.log(chalk.hex(cbgc).italic(csummary + ' - events: ' + events.length));
       events.map((event, i) => {
-        console.log(event);
         // if event has specified color - it means that it overlaps with other event(s) and should be skipped
         if(event.colorId) {
           return;
         }
 				const start = event.start.dateTime || event.start.date;
 				const eventLength = Math.abs(new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 60000 || 0;
-				total += eventLength;
-        if (showAll) {
-					console.log(chalk.hex(cbgc)(`${start} - ${event.summary} - length: ${eventLength}min`));
+        total += eventLength;
+        
+        let item = {
+          name: event.summary,
+          length: eventLength
+        }
+        tasks.push(item);
+        if (showAll && !showAllCompact) {
+          console.log(chalk.hex(cbgc)(`${start} - ${event.summary} - length: ${eventLength}min`));
 				}
       });
+      if (showAllCompact) {
+        let groupedTasks = [];
+        let j = 0;
+        sortedTasks = tasks.sort(compareValues('name'));
+        sortedTasks.forEach((task, i) => {
+          let item = {
+            name: task.name,
+            length: task.length
+          }
+          if (i === 0) {
+            // console.log(`first element`);
+            groupedTasks.push(item);
+          } else {
+            if(task.name.toUpperCase() !== sortedTasks[i - 1].name.toUpperCase() ) {
+              // console.log(`new element => ${task.name.toUpperCase()} !== ${sortedTasks[i - 1].name.toUpperCase()} i=${i}, j=${j}`);
+              groupedTasks.push(item);
+              j += 1;
+            } else {
+              // console.log(`add element => ${task.name.toUpperCase()} === ${sortedTasks[i - 1].name.toUpperCase()} i=${i}, j=${j}`);
+              // console.log(`${groupedTasks[j].length} += ${task.length}`);
+              groupedTasks[j].length += task.length;
+            }
+          }
+        });
+        groupedTasks.forEach((group, i) => {
+          console.log(chalk.hex(cbgc)(`${group.name}: ${group.length}min  / ${group.length / 60}h`));
+        });
+      } 
       if (hRate && tax) {
         let cost = (total / 60) * hRate
         console.log(chalk.hex(cbgc).bold(`Total: ${parseFloat(total).toFixed(2)}min  / ${total / 60}h `));
@@ -305,7 +375,7 @@ function listEvents(auth, cid, csummary, cbgc, hRate, tax) {
 
 function listCalendars(auth) {
   const calendar = google.calendar({version: 'v3', auth});
-  
+  console.log(useConfig);
   if(useConfig) {
     console.log('Using config file...');
 
@@ -329,12 +399,12 @@ function listCalendars(auth) {
 		if (err) return console.log('The API returned an error: ' + err);
 		const calendars = data.items;
 		if (calendars.length) {
-      if(showCalendars) {
+      if(saveCalendars) {
         fs.writeFileSync(CALENDARS, JSON.stringify(calendars));
         console.log(chalk.green.italic('File stored to', CALENDARS));
       }
 			calendars.forEach(element => {
-				if (!showCalendars) {
+				if (!saveCalendars) {
           listEvents(auth, element.id, element.summary, element.backgroundColor);
         } else {console.log(chalk.hex(element.backgroundColor)(`
             Calendar ID: ${element.id}
@@ -348,4 +418,29 @@ function listCalendars(auth) {
       console.log('No calendars found.');
 		}
 	});
+}
+
+// helper function
+function compareValues(key, order='asc') {
+  return function(a, b) {
+    if(!a.hasOwnProperty(key) || !b.hasOwnProperty(key)) {
+      // property doesn't exist on either object
+        return 0; 
+    }
+
+    const varA = (typeof a[key] === 'string') ? 
+      a[key].toUpperCase() : a[key];
+    const varB = (typeof b[key] === 'string') ? 
+      b[key].toUpperCase() : b[key];
+
+    let comparison = 0;
+    if (varA > varB) {
+      comparison = 1;
+    } else if (varA < varB) {
+      comparison = -1;
+    }
+    return (
+      (order == 'desc') ? (comparison * -1) : comparison
+    );
+  };
 }

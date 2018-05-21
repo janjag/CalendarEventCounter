@@ -38,7 +38,8 @@ For list of all calendars you can either print they id, summary and background c
 ### To Do
 
 - ~~Making script more interactive.~~
-- Sort events by name and count total time/event for them.
+- ~~Sort events by name and count total time/event for them~~.
 - ~~Add option to select specyfic date range.~~
 - ~~Add configuration for manual selection of calendars to cycle through~~. 
 - Better detection of overlaping events.
+- Better projecs grouping 
